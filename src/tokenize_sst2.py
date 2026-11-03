@@ -96,6 +96,37 @@ def evaluate_model(model, validation_loader, device):
 
     return average_loss, accuracy
 
+def train_one_epoch(model, train_loader, optimizer, device):
+    # This switches RoBERTa to training mode so it updates model weights during training.
+    model.train()
+
+    # We need these counters to calculate average loss and accuracy at the end of the epoch.
+    total_loss = 0
+
+    # This processes the training dataset one batch at a time. Each batch contains 8 training reviews.
+    for batch in train_loader:
+        # This moves each training batch to the same device as RoBERTa. Both must be on MPS.
+        batch = {
+            key: value.to(device)
+            for key, value in batch.items()
+        }
+
+        optimizer.zero_grad()
+        outputs = model(
+            input_ids=batch["input_ids"],
+            attention_mask=batch["attention_mask"],
+            labels=batch["label"]
+        )
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+
+    average_loss = total_loss / len(train_loader)
+    return average_loss
+
+
+
 validation_loss, validation_accuracy = evaluate_model(
     model,
     validation_loader,
@@ -106,45 +137,21 @@ print("Validation loss:", validation_loss)
 print("Validation accuracy:", validation_accuracy)
 
 
-model.train()
-
-train_batch = next(iter(train_loader))
-
-train_batch = {
-    key: value.to(device)
-    for key, value in train_batch.items()
-}
-
-
-optimizer.zero_grad()
-weights_before = model.classifier.out_proj.weight.detach().clone()
-
-train_outputs = model(
-    input_ids=train_batch["input_ids"],
-    attention_mask=train_batch["attention_mask"],
-    labels=train_batch["label"]
+training_loss = train_one_epoch(
+    model,
+    train_loader,
+    optimizer,
+    device
 )
 
-train_loss = train_outputs.loss
-
-train_loss.backward()
-
-print("Training loss after one step:", train_loss.item())
+print("Average training loss:", training_loss)
 
 
-optimizer.step()
-weights_after = model.classifier.out_proj.weight.detach()
-
-weight_change = (weights_after - weights_before).abs().sum().item()
-
-print("Total weight change:", weight_change)
-
-
-updated_loss, updated_accuracy = evaluate_model(
+validation_loss, validation_accuracy = evaluate_model(
     model,
     validation_loader,
     device
 )
 
-print("Validation loss after one step:", updated_loss)
-print("Validation accuracy after one step:", updated_accuracy)
+print("Validation loss after epoch:", validation_loss)
+print("Validation accuracy after epoch:", validation_accuracy)
