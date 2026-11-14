@@ -2,9 +2,9 @@ import torch.nn as nn
 from transformers import AutoModelForSequenceClassification
 
 if __package__:
-    from .aurora_layer import AuroRALinear
+    from .aurora_layer_paper import AuroRALinear
 else:
-    from aurora_layer import AuroRALinear
+    from aurora_layer_paper import AuroRALinear
 
 
 def create_aurora_model(device):

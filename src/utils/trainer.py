@@ -1,14 +1,3 @@
-import torch
-from torch.optim import AdamW
-from config import LEARNING_RATE
-
-
-def create_optimizer(model, learning_rate=LEARNING_RATE):
-    return AdamW(
-        model.parameters(),
-        lr=learning_rate
-    )
-
 def train_one_epoch(model, train_loader, optimizer, device):
     # This switches RoBERTa to training mode so it updates model weights during training.
     model.train()
@@ -36,4 +25,5 @@ def train_one_epoch(model, train_loader, optimizer, device):
         total_loss += loss.item()
 
     average_loss = total_loss / len(train_loader)
+
     return average_loss

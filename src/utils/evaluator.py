@@ -1,8 +1,8 @@
 import torch
 from sklearn.metrics import f1_score
 
-
-def evaluate_model(model, validation_loader, device):
+## Evaluates the model on the validation set and returns average loss, accuracy and F1 score.
+def evaluate(model, validation_loader, device):
     # This switches RoBERTa to evaluation mode so it does not update or randomly change its behavior during validation.
     model.eval()
 
@@ -15,8 +15,6 @@ def evaluate_model(model, validation_loader, device):
     all_predictions = []
     all_labels = []
 
-
-    # prediction_counts = torch.zeros(2, dtype=torch.long)
 
     # This tells PyTorch not to calculate gradients during evaluation.
     with torch.no_grad():
@@ -39,15 +37,11 @@ def evaluate_model(model, validation_loader, device):
             # This selects the class with the higher score for each review, predictions will contain 8 predicted labels for the batch.
             predictions = outputs.logits.argmax(dim=1)  
 
-            # prediction_counts += torch.bincount(
-            #     predictions.cpu(),
-            #     minlength=2
-            # )
-
             total_loss += outputs.loss.item()
             correct_predictions += (
                 predictions == batch["label"]
             ).sum().item()
+            
             total_examples += batch["label"].size(0)
 
             # This collects all predictions and true labels from every validation batch. 
@@ -60,10 +54,8 @@ def evaluate_model(model, validation_loader, device):
                 batch["label"].cpu().tolist()
             )
             
-    
     average_loss = total_loss / len(validation_loader)
     accuracy = correct_predictions / total_examples
-
 
     f1 = f1_score(
         all_labels,
@@ -71,5 +63,4 @@ def evaluate_model(model, validation_loader, device):
         zero_division=0
     )
 
-    # print("Predicted class counts:", prediction_counts.tolist())
     return average_loss, accuracy, f1

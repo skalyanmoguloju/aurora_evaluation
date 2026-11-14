@@ -1,17 +1,13 @@
-import torch.nn as nn
-from transformers import AutoModelForSequenceClassification
+from src.base.model import create_model as create_base_model
 
 if __package__:
-    from .aurora_layer import AuroRALinear
+    from .layer import AuroRALinear
 else:
-    from aurora_layer import AuroRALinear
+    from layer import AuroRALinear
 
 
-def create_aurora_model(device):
-    model = AutoModelForSequenceClassification.from_pretrained(
-        "roberta-base",
-        num_labels=2
-    )
+def create_model(rank, alpha):
+    model = create_base_model()
 
     for parameter in model.roberta.parameters():
         parameter.requires_grad = False
@@ -20,19 +16,17 @@ def create_aurora_model(device):
     for layer in model.roberta.encoder.layer:
         layer.attention.self.query = AuroRALinear(
             base_layer=layer.attention.self.query,
-            rank=8,
-            alpha=16,
+            rank=rank,
+            alpha=alpha,
             dropout=0.1
         )
 
         layer.attention.self.value = AuroRALinear(
             base_layer=layer.attention.self.value,
-            rank=8,
-            alpha=16,
+            rank=rank,
+            alpha=alpha,
             dropout=0.1
         )
-    
-    model = model.to(device)
 
     trainable_parameters = sum(
         parameter.numel()

@@ -1,6 +1,6 @@
 import torch
 
-from ..aurora_model import create_aurora_model
+from ..aurora.model import create_aurora_model
 
 
 device = torch.device(

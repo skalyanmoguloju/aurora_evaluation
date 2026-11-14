@@ -1,7 +1,7 @@
 import torch
 from transformers import AutoModelForSequenceClassification
 
-from ..aurora_layer import AuroRALinear
+from ..aurora.layer import AuroRALinear
 
 
 model = AutoModelForSequenceClassification.from_pretrained(

@@ -1,9 +1,9 @@
 import torch.nn as nn
 
 if __package__:
-    from .aurora_adapter import AuroRAAdapter
+    from .adapter import AuroRAAdapter
 else:
-    from aurora_adapter import AuroRAAdapter
+    from adapter import AuroRAAdapter
 
 
 class AuroRALinear(nn.Module):

@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 class AuroRAAdapter(nn.Module):
@@ -23,47 +22,15 @@ class AuroRAAdapter(nn.Module):
             bias=False
         )
 
-        self.self_proj = nn.Linear(
-            rank,
-            rank,
-            bias=False
-        )
-
-        self.fixed_activation = nn.Tanh()
-
+        self.activation = nn.GELU()
         self.dropout_layer = nn.Dropout(dropout)
-
-        self.num_basis = 8
-        self.spline_degree = 3
-
-        knots = torch.linspace(
-            -3.0,
-            3.0,
-            self.num_basis + self.spline_degree + 1
-        )
-
-        self.register_buffer(
-            "knots",
-            knots
-        )
-
-        self.spline_weights = nn.Parameter(
-            torch.zeros(
-                rank,
-                self.num_basis
-            )
-        )
-
-
         self.scaling = alpha / rank
 
         nn.init.zeros_(self.up_proj.weight)
 
     def forward(self, x):
         update = self.down_proj(x)
-        update = self.fixed_activation(update)
-        update = self.self_proj(update)
-        update = self.fixed_activation(update)
+        update = self.activation(update)
         update = self.dropout_layer(update)
         update = self.up_proj(update)
 
