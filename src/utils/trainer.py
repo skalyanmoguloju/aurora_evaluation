@@ -1,9 +1,13 @@
+import torch
+
 def train_one_epoch(model, train_loader, optimizer, device):
     # This switches RoBERTa to training mode so it updates model weights during training.
     model.train()
 
     # We need these counters to calculate average loss and accuracy at the end of the epoch.
     total_loss = 0
+
+    max_memory = 0
 
     # This processes the training dataset one batch at a time. Each batch contains 8 training reviews.
     for batch in train_loader:
@@ -21,9 +25,12 @@ def train_one_epoch(model, train_loader, optimizer, device):
         )
         loss = outputs.loss
         loss.backward()
+        if device.type == "mps":
+            torch.mps.synchronize()
+            max_memory = max(max_memory, torch.mps.current_allocated_memory())
         optimizer.step()
         total_loss += loss.item()
 
     average_loss = total_loss / len(train_loader)
 
-    return average_loss
+    return average_loss, max_memory

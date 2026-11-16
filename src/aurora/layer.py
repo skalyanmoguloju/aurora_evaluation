@@ -10,9 +10,9 @@ class AuroRALinear(nn.Module):
     def __init__(
         self,
         base_layer,
-        rank=8,
-        alpha=16,
-        dropout=0.1
+        rank,
+        alpha,
+        has_trainable_spline=False
     ):
         super().__init__()
         self.base_layer = base_layer
@@ -28,7 +28,7 @@ class AuroRALinear(nn.Module):
             rank=rank,
             output_dim=output_dim,
             alpha=alpha,
-            dropout=dropout
+            has_trainable_spline=has_trainable_spline
         )
 
 

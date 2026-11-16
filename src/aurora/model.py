@@ -6,7 +6,7 @@ else:
     from layer import AuroRALinear
 
 
-def create_model(rank, alpha):
+def create_model(rank, alpha, has_trainable_spline=False):
     model = create_base_model()
 
     for parameter in model.roberta.parameters():
@@ -18,14 +18,14 @@ def create_model(rank, alpha):
             base_layer=layer.attention.self.query,
             rank=rank,
             alpha=alpha,
-            dropout=0.1
+            has_trainable_spline=has_trainable_spline
         )
 
         layer.attention.self.value = AuroRALinear(
             base_layer=layer.attention.self.value,
             rank=rank,
             alpha=alpha,
-            dropout=0.1
+            has_trainable_spline=has_trainable_spline
         )
 
     trainable_parameters = sum(

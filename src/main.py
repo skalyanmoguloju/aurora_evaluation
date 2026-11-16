@@ -1,19 +1,22 @@
 from src.peft_type import PeftType
 from src.runner import run
+from src.config import RANKS
+from src.utils.data_loader import create_dataloaders
 
 
-peft_types = [PeftType.LORA, PeftType.AURORA]
-initial_rank = 2
-rank_iterator = 4
+
+peft_types = [PeftType.LORA, PeftType.TANH_AURORA, PeftType.TRAINABLE_TANH_AURORA]
+
+
+train_loader, validation_loader = create_dataloaders()
 
 print('************************************')
 print(f'Running for Base')
 print('************************************')
-run(PeftType.BASE)
+run(PeftType.BASE, train_loader, validation_loader)
 
 
-for i in range(rank_iterator):
-    rank = initial_rank * (2 ** i)
+for rank in RANKS:
     alpha = rank * 2
 
     print('************************************')
@@ -22,7 +25,7 @@ for i in range(rank_iterator):
     for peft_type in peft_types:
         print('-----------------------------------------')
         print(f'Running for Peft Type: {peft_type.name}')
-        run(peft_type, rank, alpha)
+        run(peft_type, train_loader, validation_loader, rank, alpha)
         print('-----------------------------------------')
 
     print('************************************')
