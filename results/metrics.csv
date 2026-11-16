@@ -1,3 +1,4 @@
+date,total_epochs,epoch,peft_type,rank,alpha,tain,debug,learning_rate,training_time_sec,max_memory_epoch_mb,add_param_mb,validation_loss,validation_accuracy,validation_f1
 2026-11-14 21:27:35,5,1,BASE,0,0,True,False,2e-05,1424.96,2200.08,1724.58,0.211,0.9209,0.9232
 2026-11-14 21:50:59,5,2,BASE,0,0,True,False,2e-05,1399.63,2731.76,0.0,0.2347,0.9312,0.9338
 2026-11-14 22:14:22,5,3,BASE,0,0,True,False,2e-05,1398.35,2722.76,0.0,0.2296,0.93,0.932
