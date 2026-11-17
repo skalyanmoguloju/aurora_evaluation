@@ -1,7 +1,7 @@
 from datasets import load_dataset
 from transformers import AutoTokenizer
 
-def tokenize_data(dataset):
+def tokenize_data(dataset, max_length):
     tokenizer = AutoTokenizer.from_pretrained("roberta-base")
 
     def tokenize_batch(batch):
@@ -9,7 +9,7 @@ def tokenize_data(dataset):
             batch["sentence"],
             truncation=True,
             padding="max_length",
-            max_length=128
+            max_length=max_length
         )
 
     tokenized_dataset = dataset.map(tokenize_batch, batched=True)

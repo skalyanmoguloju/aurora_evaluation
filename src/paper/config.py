@@ -1,0 +1,15 @@
+SEED = 0
+
+EPOCHS = 5
+LEARNING_RATE = 8e-4
+BATCH_SIZE = 32
+MAX_LENGTH = 512
+WARMUP_RATIO = 0.06
+
+# Paper AuroRA configuration
+AURORA_RANK = 2
+AURORA_ALPHA = 4
+
+# Parameter-matched LoRA comparison
+LORA_RANK = 8
+LORA_ALPHA = 16

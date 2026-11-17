@@ -12,10 +12,10 @@ from src.config import (
 )
 
 ## Created the dataloader for the SST2 dataset used for training and validation of the RoBERTa model 
-def create_dataloaders():
+def create_dataloaders(batch_size=BATCH_SIZE, max_length=MAX_LENGTH):
     dataset = load_dataset("glue", "sst2")
     
-    tokenized_dataset = tokenize_data(dataset)
+    tokenized_dataset = tokenize_data(dataset, max_length)
 
     train_data = tokenized_dataset["train"]
     validation_data = tokenized_dataset["validation"]
@@ -29,13 +29,13 @@ def create_dataloaders():
 
     train_loader = DataLoader(
         train_data,
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         shuffle=True
     )
 
     validation_loader = DataLoader(
         validation_data,
-        batch_size=BATCH_SIZE
+        batch_size=batch_size
     )
 
     return train_loader, validation_loader

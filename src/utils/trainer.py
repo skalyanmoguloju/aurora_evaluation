@@ -1,6 +1,6 @@
 import torch
 
-def train_one_epoch(model, train_loader, optimizer, device):
+def train_one_epoch(model, train_loader, optimizer, device, scheduler=None):
     # This switches RoBERTa to training mode so it updates model weights during training.
     model.train()
 
@@ -28,7 +28,12 @@ def train_one_epoch(model, train_loader, optimizer, device):
         if device.type == "mps":
             torch.mps.synchronize()
             max_memory = max(max_memory, torch.mps.current_allocated_memory())
+        
         optimizer.step()
+        
+        if scheduler is not None:
+            scheduler.step()
+
         total_loss += loss.item()
 
     average_loss = total_loss / len(train_loader)

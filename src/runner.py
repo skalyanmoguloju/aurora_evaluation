@@ -3,6 +3,7 @@ import torch
 import time
 import copy
 from datetime import datetime
+from transformers import get_linear_schedule_with_warmup
 from src.base.model import create_model as create_base_model
 from src.lora.model import create_model as create_lora_model
 from src.aurora.model import create_model as create_aurora_model
@@ -27,7 +28,7 @@ def __get_model(peft_type: PeftType, rank: int, alpha: int):
     else:
         raise ValueError(f"Unknown PeftType: {peft_type}")
 
-def __get_checkpoint_path(peft_type: PeftType, rank: int):
+def __get_checkpoint_path(peft_type: PeftType, rank: int, is_paper:bool = False):
     if DEBUG: 
         if peft_type == PeftType.BASE:
             return f"models/base_debug_rank_{rank}.pt"
@@ -37,6 +38,16 @@ def __get_checkpoint_path(peft_type: PeftType, rank: int):
             return f"models/tanh_aurora_debug_rank_{rank}.pt"
         elif peft_type == PeftType.TRAINABLE_TANH_AURORA:
             return f"models/trainable_tanh_aurora_debug_rank_{rank}.pt"
+
+    if is_paper:
+        if peft_type == PeftType.BASE:
+            return f"models/base_paper_rank_{rank}.pt"
+        elif peft_type == PeftType.LORA:
+            return f"models/lora_paper_rank_{rank}.pt"
+        elif peft_type == PeftType.TANH_AURORA:
+            return f"models/tanh_aurora_paper_rank_{rank}.pt"
+        elif peft_type == PeftType.TRAINABLE_TANH_AURORA:
+            return f"models/trainable_tanh_aurora_paper_rank_{rank}.pt"
 
     if peft_type == PeftType.BASE:
         return f"models/base_model_rank_{rank}.pt"
@@ -53,8 +64,19 @@ def __clean_mps_memory():
         torch.mps.synchronize()
         torch.mps.empty_cache() 
 
-def run(peft_type:PeftType, train_loader, validation_loader, rank:int = 0, alpha:int = 0):
-    torch.manual_seed(SEED)
+def run(
+    peft_type:PeftType, 
+    train_loader, 
+    validation_loader, 
+    epochs:int = EPOCHS, 
+    learning_rate:int = LEARNING_RATE,
+    seed = SEED,
+    filepath: str = "results/metrics.csv",
+    rank:int = 0, 
+    alpha:int = 0, 
+    is_paper:bool = False
+):
+    torch.manual_seed(seed)
 
     device = torch.device(
         "mps" if torch.backends.mps.is_available() else "cpu"
@@ -67,13 +89,27 @@ def run(peft_type:PeftType, train_loader, validation_loader, rank:int = 0, alpha
     model.to(device)
 
     if TRAIN_MODEL:
-        optimizer = create_optimizer(model, LEARNING_RATE)
+        optimizer = create_optimizer(model, learning_rate)
 
         initial_loss, initial_accuracy, initial_f1 = evaluate(
             model,
             validation_loader,
             device
         )
+
+        scheduler = None
+        if is_paper:
+            total_training_steps = epochs * len(train_loader)
+
+            warmup_steps = int(
+                0.06 * total_training_steps
+            )
+
+            scheduler = get_linear_schedule_with_warmup(
+                optimizer,
+                num_warmup_steps=warmup_steps,
+                num_training_steps=total_training_steps
+            )
 
         print("Validation loss before training:", initial_loss)
         print("Validation accuracy before training:", initial_accuracy)
@@ -82,7 +118,7 @@ def run(peft_type:PeftType, train_loader, validation_loader, rank:int = 0, alpha
         best_validation_loss = float("inf")
         best_model_state = None
 
-        for epoch in range(EPOCHS):
+        for epoch in range(epochs):
             __clean_mps_memory()
             if device.type == "mps":
                 torch.mps.synchronize()
@@ -95,14 +131,15 @@ def run(peft_type:PeftType, train_loader, validation_loader, rank:int = 0, alpha
                 model,
                 train_loader,
                 optimizer,
-                device
+                device,
+                scheduler
             )
         
             training_time = time.perf_counter() - start_time
             print("Training time:", training_time, "seconds")
 
             print(
-                f"Epoch {epoch + 1}/{EPOCHS} "
+                f"Epoch {epoch + 1}/{epochs} "
                 f"training loss: {training_loss}"
             )
 
@@ -138,21 +175,21 @@ def run(peft_type:PeftType, train_loader, validation_loader, rank:int = 0, alpha
             # ==========================
             log_results({
                 "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "total_epochs": EPOCHS,
+                "total_epochs": epochs,
                 "epoch": epoch + 1,
                 "peft_type": peft_type.name,
                 "rank": rank,
                 "alpha": alpha,
                 "train": TRAIN_MODEL,
                 "debug": DEBUG,
-                "learning_rate": LEARNING_RATE,
+                "learning_rate": learning_rate,
                 "training_time_sec": round(training_time, 2) if TRAIN_MODEL else 0.0,
                 "max_memory_epoch_mb": round(max_memory_epoch_mb, 2) if TRAIN_MODEL else 0.0,
                 "additional_peak_mb": round(additional_peak_mb, 2) if TRAIN_MODEL else 0.0,
                 "validation_loss": round(validation_loss, 4),
                 "validation_accuracy": round(validation_accuracy, 4),
                 "validation_f1": round(validation_f1, 4),
-            })
+            }, filepath=filepath)
 
         model.load_state_dict(best_model_state)
 
@@ -168,7 +205,7 @@ def run(peft_type:PeftType, train_loader, validation_loader, rank:int = 0, alpha
 
         save_checkpoint(
             model,
-            __get_checkpoint_path(peft_type, rank)
+            __get_checkpoint_path(peft_type, rank, is_paper)
         )
 
         
@@ -176,7 +213,7 @@ def run(peft_type:PeftType, train_loader, validation_loader, rank:int = 0, alpha
     else:
         model = load_checkpoint(
             model,
-            __get_checkpoint_path(peft_type, rank),
+            __get_checkpoint_path(peft_type, rank, is_paper),
             device
         )
         validation_loss, validation_accuracy, validation_f1 = evaluate(
